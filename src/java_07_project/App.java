@@ -1,33 +1,32 @@
 package java_07_project;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Scanner;
 
-import java_07_project_dto.Article;
-import java_07_project_dto.Member;
-import java_07_project_util.Util;
+import java_07_project_controller.ArticleController;
+import java_07_project_controller.Controller;
+import java_07_project_controller.ExportController;
+import java_07_project_controller.MemberController;
 
 public class App {
 
-	private static List<Article> articles;
-	private static List<Member> members;
-	
-
-	static {
-		articles = new ArrayList<>();
-		members = new ArrayList<>();
+	public App() {
 	}
 
 	public void start() {
-		System.out.println("== ÇÁ·Î±×·¥ ½ÃÀÛ ==");
-
-		makeTestData();
+		System.out.println("== í”„ë¡œê·¸ë¨ ì‹œì‘ ==");
 
 		Scanner sc = new Scanner(System.in);
 
+		MemberController memberController = new MemberController(sc);
+		ArticleController articleController = new ArticleController(sc);
+		ExportController exportController = new ExportController(sc);
+
+		articleController.makeTestData();
+		memberController.makeTestData();
+		exportController.makeTestData();
+
 		while (true) {
-			System.out.printf("¸í·É¾î) ");
+			System.out.printf("ëª…ë ¹ì–´) ");
 			String command = sc.nextLine();
 
 			command = command.trim();
@@ -39,188 +38,62 @@ public class App {
 			if (command.equals("system exit")) {
 				break;
 			}
-			if (command.equals("member join")) {
-				int id = members.size() + 1;
-				String regDate = Util.getNowDateStr();
-				System.out.print("¾ÆÀÌµğ : ");
-				String memberId = sc.nextLine();
-				System.out.print("ºñ¹Ğ¹øÈ£ : ");
-				String memberPassword = sc.nextLine();
-				System.out.print("ÀÌ¸§ : ");
-				String memberName = sc.nextLine();
-				
-				Member member = new Member(id, regDate, memberId, memberPassword, memberName);
-				members.add(member);
 
-				System.out.printf("%d¹ø±ÛÀÌ »ı¼ºµÇ¾ú½À´Ï´Ù.\n", id);
-				
-				
+			String[] commandBits = command.split(" "); // article detail
+
+			if (commandBits.length == 1) {
+				System.out.println("ì¡´ì¬í•˜ì§€ ì•ŠëŠ” ëª…ë ¹ì–´ì…ë‹ˆë‹¤.");
+				continue;
 			}
-			else if (command.equals("article write")) {
-				int id = articles.size() + 1;
-				String regDate = Util.getNowDateStr();
-				System.out.printf("Á¦¸ñ : ");
-				String title = sc.nextLine();
-				System.out.printf("³»¿ë : ");
-				String body = sc.nextLine();
 
-				Article article = new Article(id, regDate, title, body, 0);
-				articles.add(article);
+			String controllerName = commandBits[0]; // article
+			String actionMethodName = commandBits[1]; // detail
 
-				System.out.printf("%d¹ø±ÛÀÌ »ı¼ºµÇ¾ú½À´Ï´Ù.\n", id);
+			Controller controller = null;
 
-			} else if (command.startsWith("article list")) {
-
-//				searchKeyword¿Í ÀÏÄ¡ÇÏ´Â article.titleÀÇ ³»¿ëµéÀ» forListArticles ¹è¿­¿¡ Ãß°¡ => °Ë»öÀ» forListArticles ¾È¿¡¼­ ÇÔ.
-				String searchKeyword = command.substring("article list".length()).trim();
-
-				List<Article> forListArticles = articles;
-
-				if (searchKeyword.length() > 0) {
-					forListArticles = new ArrayList<>();
-
-					for (Article article : articles) {
-						if (article.title.contains(searchKeyword)) {
-							forListArticles.add(article);
-						}
-					}
-					if (forListArticles.size() == 0) {
-						System.out.println("°Ë»ö °á°ú°¡ Á¸ÀçÇÏÁö ¾Ê½À´Ï´Ù.");
-						continue;
-					}
-
-				}
-				
-				if (articles.size() == 0) {
-					System.out.println("°Ô½Ã¹°ÀÌ ¾ø½À´Ï´Ù.");
-					continue;
-				}
-				
-				System.out.printf("°Ë»ö¾î : %s\n", searchKeyword);
-
-				System.out.print("¹øÈ£ | Á¶È¸| Á¦¸ñ\n");
-
-				for (int i = forListArticles.size() - 1; i >= 0; i--) {
-					Article article = forListArticles.get(i);
-
-					System.out.printf("%4d|%4d|%s\n", article.id, article.hit, article.title);
-				}
-			} else if (command.startsWith("article detail ")) {
-				String[] commandBits = command.split(" ");
-
-				int id = Integer.parseInt(commandBits[2]);
-
-				Article foundArticle = getArticleById(id);
-
-				if (foundArticle == null) {
-					System.out.printf("%d¹ø °Ô½Ã¹°Àº Á¸ÀçÇÏÁö ¾Ê½À´Ï´Ù.\n", id);
-					continue;
-				}
-
-				foundArticle.increaseHit();
-
-				System.out.printf("¹øÈ£ : %d\n", foundArticle.id);
-				System.out.printf("³¯Â¥ : %s\n", foundArticle.regDate);
-				System.out.printf("Á¦¸ñ : %s\n", foundArticle.title);
-				System.out.printf("³»¿ë : %s\n", foundArticle.body);
-				System.out.printf("Á¶È¸¼ö : %d\n", foundArticle.hit);
-
-			} else if (command.startsWith("article modify ")) {
-				String[] commandBits = command.split(" ");
-
-				int id = Integer.parseInt(commandBits[2]);
-
-				Article foundArticle = getArticleById(id);
-
-				if (foundArticle == null) {
-					System.out.printf("%d¹ø °Ô½Ã¹°Àº Á¸ÀçÇÏÁö ¾Ê½À´Ï´Ù.\n", id);
-					continue;
-				}
-
-				System.out.printf("Á¦¸ñ : ");
-				String title = sc.nextLine();
-				System.out.printf("³»¿ë : ");
-				String body = sc.nextLine();
-
-				foundArticle.title = title;
-				foundArticle.body = body;
-
-				System.out.printf("%d¹ø±ÛÀÌ ¼öÁ¤µÇ¾ú½À´Ï´Ù.\n", id);
-
-			} else if (command.startsWith("article delete ")) {
-				String[] commandBits = command.split(" ");
-
-				int id = Integer.parseInt(commandBits[2]);
-
-				int foundIndex = getArticleIndexById(id);
-
-				for (int i = 0; i < articles.size(); i++) {
-					Article article = articles.get(i);
-
-					if (article.id == id) {
-						foundIndex = i;
-						break;
-					}
-				}
-
-				if (foundIndex == -1) {
-					System.out.printf("%d¹ø °Ô½Ã¹°Àº Á¸ÀçÇÏÁö ¾Ê½À´Ï´Ù.\n", id);
-					continue;
-				}
-				// size() = > 3
-				// index : 0 1 2
-				// id : 1 2 3
-				articles.remove(foundIndex);
-				System.out.printf("%d¹ø °Ô½Ã¹°ÀÌ »èÁ¦µÇ¾ú½À´Ï´Ù.\n", id);
+			if (controllerName.equals("article")) {
+				controller = articleController;
+			} else if (controllerName.equals("member")) {
+				controller = memberController;
+			} else if (controllerName.equals("export")) {
+				controller = exportController;
 			}
 
 			else {
-				System.out.printf("%s(Àº)´Â Á¸ÀçÇÏÁö ¾Ê´Â ¸í·É¾î ÀÔ´Ï´Ù.\n", command);
+				System.out.println("ì¡´ì¬í•˜ì§€ ì•ŠëŠ” ëª…ë ¹ì–´ì…ë‹ˆë‹¤.");
+				continue;
 			}
+
+			String actionName = controllerName + "/" + actionMethodName;
+
+			switch (actionName) {
+			case "article/write":
+			case "article/delete":
+			case "article/modify":
+			case "member/logout":
+				if (Controller.isLogined() == false) {
+					System.out.println("ë¡œê·¸ì¸ í›„ ì´ìš©í•´ì£¼ì„¸ìš”.");
+					continue;
+				}
+				break;
+			}
+			switch (actionName) {
+			case "member/login":
+			case "member/join":
+				if (Controller.isLogined()) {
+					System.out.println("ë¡œê·¸ì•„ì›ƒ í›„ ì´ìš©í•´ì£¼ì„¸ìš”.");
+					continue;
+				}
+				break;
+			}
+
+			controller.doAction(command, actionMethodName);
+
 		}
 
 		sc.close();
 
-		System.out.println("== ÇÁ·Î±×·¥ ³¡ ==");
-	}
-
-	private void makeTestData() {
-		System.out.println("Å×½ºÆ®¸¦ À§ÇÑ µ¥ÀÌÅÍ¸¦ »ı¼ºÇÕ´Ï´Ù.");
-
-		articles.add(new Article(1, Util.getNowDateStr(), "Á¦¸ñ1", "³»¿ë1", 11));
-		articles.add(new Article(2, Util.getNowDateStr(), "Á¦¸ñ2", "³»¿ë2", 22));
-		articles.add(new Article(3, Util.getNowDateStr(), "Á¦¸ñ3", "³»¿ë3", 33));
-
-	}
-
-	private int getArticleIndexById(int id) {
-		int i = 0;
-		// Çâ»óµÈ for¹®
-		for (Article article : articles) {
-			if (article.id == id) {
-				return i;
-			}
-			i++;
-		}
-		return -1;
-	}
-
-	private Article getArticleById(int id) {
-
-//		for (int i = 0; i < articles.size(); i++) {
-//			Article article = articles.get(i);
-//
-//			if (article.id == id) {
-//				return article;
-//			}
-//		}
-// 		getArticleIndexById ÇÔ¼ö¿¡¼­ÀÇ return °ªÀ» ±×´ë·Î È°¿ë => ¾îÂ÷ÇÇ µ¹¾Æ°¡´Â for¹®ÀÌ °°À¸¹Ç·Î		
-		int index = getArticleIndexById(id);
-
-		if (index != -1) {
-			return articles.get(index);
-		}
-		return null;
+		System.out.println("== í”„ë¡œê·¸ë¨ ë ==");
 	}
 
 }
